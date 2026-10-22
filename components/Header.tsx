@@ -1,6 +1,7 @@
 
 import Image from "next/image";
 import Link from "next/link";
+import AuthButtons from "./AuthButtons";
 
 export default function Header() {
   return (
@@ -51,21 +52,7 @@ export default function Header() {
         </nav>
 
         {/* Acesso à plataforma */}
-        <div className="flex items-center gap-3">
-          <Link
-            href="/login"
-            className="hidden rounded-lg px-4 py-2 text-sm font-medium text-slate-700 transition hover:bg-slate-100 sm:inline-flex"
-          >
-            Entrar
-          </Link>
-
-          <Link
-            href="/cadastro"
-            className="rounded-lg bg-teal-600 px-5 py-2.5 text-sm font-semibold text-white transition hover:bg-teal-700"
-          >
-            Criar conta
-          </Link>
-        </div>
+        <AuthButtons />
       </div>
     </header>
   );

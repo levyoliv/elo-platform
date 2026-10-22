@@ -2,12 +2,59 @@
 "use client";
 
 import { useState } from "react";
+import type { FormEvent } from "react";
+import { entrarUsuario } from "@/lib/auth/login";
 import Image from "next/image";
 import Link from "next/link";
 import { ChevronLeft, Eye, EyeOff } from "lucide-react";
 
 export default function LoginPage() {
   const [showPassword, setShowPassword] = useState(false);
+  const [loading, setLoading] = useState(false);
+  const [errorMessage, setErrorMessage] = useState("");
+
+  async function handleLogin(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+
+    if (loading) return;
+
+    setErrorMessage("");
+
+    const formData = new FormData(event.currentTarget);
+
+    const email = String(formData.get("email") ?? "").trim();
+    const senha = String(formData.get("password") ?? "");
+
+    if (!email || !senha) {
+      setErrorMessage("Preencha seu e-mail e sua senha.");
+      return;
+    }
+
+    setLoading(true);
+
+    try {
+      const { error } = await entrarUsuario({
+        email,
+        senha,
+      });
+
+      if (error) {
+        setErrorMessage(error.message);
+        return;
+      }
+
+      // Redirecionamento temporário após login
+      window.location.assign("/painel");
+    } catch (error) {
+      console.error("Erro ao entrar no ELO:", error);
+
+      setErrorMessage(
+        "Não foi possível realizar o login. Tente novamente."
+      );
+    } finally {
+      setLoading(false);
+    }
+  }
 
   return (
     <main className="flex min-h-dvh justify-center bg-white px-5 py-6 sm:items-center sm:bg-[#F3F4F6] sm:py-10">
@@ -45,7 +92,7 @@ export default function LoginPage() {
         {/* Formulário */}
         <form
           className="mt-9 space-y-5"
-          onSubmit={(event) => event.preventDefault()}
+          onSubmit={handleLogin}
         >
           {/* E-mail */}
           <div>
@@ -58,6 +105,7 @@ export default function LoginPage() {
 
             <input
               id="email"
+              name="email"
               type="email"
               placeholder="seu@email.com"
               autoComplete="email"
@@ -77,6 +125,7 @@ export default function LoginPage() {
             <div className="flex h-12 items-center rounded-xl border border-slate-200 px-4 focus-within:border-teal-500 focus-within:ring-2 focus-within:ring-teal-100">
               <input
                 id="password"
+                name="password"
                 type={showPassword ? "text" : "password"}
                 placeholder="Digite sua senha"
                 autoComplete="current-password"
@@ -106,14 +155,23 @@ export default function LoginPage() {
             </div>
           </div>
 
-          {/* Login: habilitar após conectar a autenticação */}
+          {/* Botão de login */}
           <button
-            type="button"
-            disabled
-            className="h-12 w-full cursor-not-allowed rounded-xl bg-[#0D9488] text-[14px] font-semibold text-white"
+            type="submit"
+            disabled={loading}
+            className="h-12 w-full rounded-xl bg-[#0D9488] text-[14px] font-semibold text-white transition hover:bg-[#0F766E] disabled:cursor-not-allowed disabled:opacity-75"
           >
-            Entrar
+            {loading ? "Entrando..." : "Entrar"}
           </button>
+
+          {errorMessage && (
+            <p
+              role="alert"
+              className="text-center text-[12px] text-red-600"
+            >
+              {errorMessage}
+            </p>
+          )}
         </form>
 
         {/* Divisor */}
