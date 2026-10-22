@@ -2,6 +2,9 @@ import { Suspense } from "react";
 import { connection } from "next/server";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
+import StudentDashboard from "@/components/dashboard/StudentDashboard";
+import { listarOportunidades } from "@/lib/opportunities/listar";
+import type { Opportunity } from "@/types/opportunity";
 
 async function AreaEstudante() {
   await connection();
@@ -26,18 +29,27 @@ async function AreaEstudante() {
     redirect("/painel");
   }
 
-  return (
-    <main className="flex min-h-screen items-center justify-center bg-[#F3F4F6] px-5">
-      <div className="rounded-2xl bg-white p-8 text-center shadow-sm">
-        <h1 className="text-2xl font-bold text-[#0F2937]">
-          Área do Estudante
-        </h1>
+  
+  const dados = await listarOportunidades();
 
-        <p className="mt-3 text-sm text-slate-600">
-          Bem-vindo, {perfil.full_name}!
-        </p>
-      </div>
-    </main>
+  const oportunidades: Opportunity[] = dados.map((item) => ({
+    id: item.id,
+    titulo: item.titulo,
+    organizacao: item.organizacao_nome,
+    tipo: item.tipo as Opportunity["tipo"],
+    modalidade: item.modalidade as Opportunity["modalidade"],
+    localizacao: item.localizacao,
+    descricao: item.descricao,
+    remuneracao: item.remuneracao,
+    duracao: item.duracao,
+    imagemUrl: item.imagem_url,
+  }));
+
+  return (
+    <StudentDashboard
+      nome={perfil.full_name}
+      oportunidades={oportunidades}
+    />
   );
 }
 
