@@ -2,6 +2,8 @@
 "use client";
 
 import { useState } from "react";
+import type { FormEvent } from "react";
+import { cadastrarUsuario } from "@/lib/auth/cadastro";
 import Image from "next/image";
 import Link from "next/link";
 import {
@@ -21,6 +23,69 @@ export default function CadastroPage() {
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] =
     useState(false);
+
+  const [loading, setLoading] = useState(false);
+  const [message, setMessage] = useState("");
+  const [errorMessage, setErrorMessage] = useState("");
+
+  async function handleCadastro(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+
+    if (loading) return;
+
+    setMessage("");
+    setErrorMessage("");
+
+    const formData = new FormData(event.currentTarget);
+
+    const nome = String(formData.get("name") ?? "").trim();
+    const institution = String(formData.get("institution") ?? "").trim();
+    const email = String(formData.get("email") ?? "").trim();
+    const senha = String(formData.get("password") ?? "");
+    const confirmarSenha = String(formData.get("confirmPassword") ?? "");
+
+    if (!nome || !institution || !email || !senha || !confirmarSenha) {
+      setErrorMessage("Preencha todos os campos obrigatórios.");
+      return;
+    }
+
+    if (senha.length < 8) {
+      setErrorMessage("A senha precisa ter pelo menos 8 caracteres.");
+      return;
+    }
+
+    if (senha !== confirmarSenha) {
+      setErrorMessage("As senhas não coincidem.");
+      return;
+    }
+
+    setLoading(true);
+
+    try {
+      const { error } = await cadastrarUsuario({
+        nome,
+        institution,
+        email,
+        senha,
+        tipoConta: profile,
+      });
+
+      if (error) {
+        setErrorMessage(error.message);
+        return;
+      }
+
+      setMessage(
+        "Solicitação recebida! Se necessário, confira seu e-mail para confirmar a conta."
+      );
+    } catch {
+      setErrorMessage(
+        "Não foi possível realizar o cadastro. Tente novamente."
+      );
+    } finally {
+      setLoading(false);
+    }
+  }
 
   return (
     <main className="flex min-h-dvh justify-center bg-white px-5 py-6 sm:items-center sm:bg-[#F3F4F6] sm:py-10">
@@ -101,7 +166,7 @@ export default function CadastroPage() {
         {/* Formulário */}
         <form
           className="mt-7 space-y-4"
-          onSubmit={(event) => event.preventDefault()}
+          onSubmit={handleCadastro}
         >
           {/* Nome */}
           <div>
@@ -117,6 +182,7 @@ export default function CadastroPage() {
             <input
               key={`name-${profile}`}
               id="name"
+              name="name"
               type="text"
               autoComplete={
                 profile === "estudante"
@@ -146,6 +212,7 @@ export default function CadastroPage() {
             {profile === "estudante" ? (
               <input
                 id="institution"
+                name="institution"
                 type="text"
                 placeholder="Ex.: Universidade Federal do Ceará"
                 className="h-12 w-full rounded-xl border border-slate-200 bg-white px-4 text-[13px] text-slate-900 outline-none transition placeholder:text-slate-400 focus:border-teal-500 focus:ring-2 focus:ring-teal-100"
@@ -153,6 +220,7 @@ export default function CadastroPage() {
             ) : (
               <select
                 id="institution"
+                name="institution"
                 defaultValue=""
                 className="h-12 w-full rounded-xl border border-slate-200 bg-white px-4 text-[13px] text-slate-900 outline-none focus:border-teal-500 focus:ring-2 focus:ring-teal-100"
               >
@@ -181,6 +249,7 @@ export default function CadastroPage() {
 
             <input
               id="email"
+              name="email"
               type="email"
               placeholder="seu@email.com"
               autoComplete="email"
@@ -200,6 +269,7 @@ export default function CadastroPage() {
             <div className="flex h-12 items-center rounded-xl border border-slate-200 px-4 focus-within:border-teal-500 focus-within:ring-2 focus-within:ring-teal-100">
               <input
                 id="password"
+                name="password"
                 type={showPassword ? "text" : "password"}
                 placeholder="Crie uma senha"
                 autoComplete="new-password"
@@ -237,6 +307,7 @@ export default function CadastroPage() {
             <div className="flex h-12 items-center rounded-xl border border-slate-200 px-4 focus-within:border-teal-500 focus-within:ring-2 focus-within:ring-teal-100">
               <input
                 id="confirmPassword"
+                name="confirmPassword"
                 type={
                   showConfirmPassword ? "text" : "password"
                 }
@@ -267,18 +338,33 @@ export default function CadastroPage() {
           </div>
 
           {/* Botão temporariamente desabilitado */}
+          
           <button
-            type="button"
-            disabled
-            className="mt-2 h-12 w-full cursor-not-allowed rounded-xl bg-[#0D9488] text-[14px] font-semibold text-white opacity-75"
+            type="submit"
+            disabled={loading}
+            className="mt-2 h-12 w-full rounded-xl bg-[#0D9488] text-[14px] font-semibold text-white transition hover:bg-[#0F766E] disabled:cursor-not-allowed disabled:opacity-75"
           >
-            Criar conta
+            {loading ? "Criando conta..." : "Criar conta"}
           </button>
 
-          <p className="text-center text-[11px] text-slate-400">
-            O cadastro será ativado quando conectarmos a
-            autenticação.
-          </p>
+
+        {errorMessage && (
+            <p
+              role="alert"
+              className="text-center text-[12px] text-red-600"
+            >
+              {errorMessage}
+            </p>
+        )}
+
+        {message && (
+            <p
+              role="status"
+              className="text-center text-[12px] text-teal-700"
+            >
+              {message}
+            </p>
+        )}
         </form>
 
         {/* Link para login */}
