@@ -1,4 +1,3 @@
-
 -- ELO - Tabela de oportunidades
 
 create table public.opportunities (

@@ -21,6 +21,7 @@ export async function listarOportunidades() {
       created_at
     `)
     .eq("status", "publicada")
+    .is("deleted_at", null)
     .order("created_at", { ascending: false })
     .limit(6);
 

@@ -57,7 +57,8 @@ async function ConteudoFavoritos() {
       .from("opportunities")
       .select("*")
       .in("id", ids)
-      .eq("status", "publicada");
+      .eq("status", "publicada")
+      .is("deleted_at", null);  
 
     if (erroVagas) {
       return <p>Não foi possível carregar as oportunidades.</p>;

@@ -38,25 +38,43 @@ async function ConteudoCandidaturas() {
       .eq("student_id", usuarioId)
       .order("created_at", { ascending: false });
 
-  const ids = (candidaturas ?? []).map(
-    (item) => item.opportunity_id
+
+  type DetalheOportunidade = {
+    application_id: string;
+    titulo: string;
+    localizacao: string | null;
+    retirada: boolean;
+  };
+
+  // Buscar detalhes das oportunidades do próprio estudante,
+  // incluindo aquelas que foram retiradas pela organização.
+  const { data: detalhes, error: erroDetalhes } = await supabase.rpc(
+    "get_my_application_opportunity_details"
   );
 
-  const { data: oportunidades } = ids.length
-    ? await supabase
-        .from("opportunities")
-        .select("id, titulo, localizacao")
-        .in("id", ids)
-    : { data: [] };
+  if (erroDetalhes) {
+    throw new Error(
+      "Não foi possível carregar os detalhes das candidaturas."
+    );
+  }
 
-  const oportunidadesPorId = new Map(
-    (oportunidades ?? []).map((item) => [item.id, item])
+  const oportunidadesPorCandidatura = new Map<
+    string,
+    DetalheOportunidade
+  >(
+    (detalhes ?? []).map(
+      (item: DetalheOportunidade): [string, DetalheOportunidade] => [
+        item.application_id,
+        item,
+      ]
+    )
   );
 
   const nomesStatus: Record<string, string> = {
     pendente: "Em análise",
     aprovada: "Aprovada",
     rejeitada: "Não selecionada",
+    cancelada: "Cancelada",
   };
 
   return (
@@ -87,8 +105,8 @@ async function ConteudoCandidaturas() {
         ) : candidaturas && candidaturas.length > 0 ? (
           <div className="mt-7 space-y-4">
             {candidaturas.map((candidatura) => {
-              const oportunidade = oportunidadesPorId.get(
-                candidatura.opportunity_id
+              const oportunidade = oportunidadesPorCandidatura.get(
+                candidatura.id
               );
 
               return (
@@ -101,6 +119,13 @@ async function ConteudoCandidaturas() {
                       {oportunidade?.titulo ??
                         "Oportunidade indisponível"}
                     </h2>
+
+                    {oportunidade?.retirada && (
+                      <p className="mt-2 text-[12px] font-medium text-amber-700">
+                        Oportunidade retirada pela organização.
+                        Sua candidatura permanece no histórico.
+                      </p>
+                    )}
 
                     <p className="mt-1 text-[12px] text-slate-500">
                       {oportunidade?.localizacao ??
@@ -117,10 +142,21 @@ async function ConteudoCandidaturas() {
                     </p>
                   </div>
 
-                  <span className="rounded-full bg-teal-50 px-3 py-1 text-[12px] font-semibold text-[#0D9488]">
+
+                  <span
+                    className={`rounded-full px-3 py-1 text-[12px] font-semibold ${candidatura.status === "aprovada"
+                        ? "bg-teal-50 text-[#0D9488]"
+                        : candidatura.status === "cancelada"
+                          ? "bg-red-50 text-red-700"
+                          : candidatura.status === "rejeitada"
+                            ? "bg-slate-100 text-slate-600"
+                            : "bg-amber-50 text-amber-700"
+                      }`}
+                  >
                     {nomesStatus[candidatura.status] ??
                       candidatura.status}
                   </span>
+
                 </div>
               );
             })}

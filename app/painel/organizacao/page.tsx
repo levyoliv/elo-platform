@@ -3,49 +3,74 @@ import { Suspense } from "react";
 import { connection } from "next/server";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
+import OrganizationDashboard from "@/components/dashboard/OrganizationDashboard";
 
-async function AreaOrganizacao() {
+async function ConteudoOrganizacao() {
   await connection();
 
   const supabase = await createClient();
 
+  // Verificar se o usuário está autenticado
   const { data, error } = await supabase.auth.getClaims();
 
-  // Impede acesso sem login
   if (error || !data?.claims) {
     redirect("/login");
   }
 
+  const usuarioId = data.claims.sub;
+
+  // Verificar se a conta pertence a uma organização
   const { data: perfil, error: erroPerfil } = await supabase
     .from("profiles")
     .select("full_name, account_type")
-    .eq("id", data.claims.sub)
+    .eq("id", usuarioId)
     .single();
 
-  // Apenas contas do tipo organização podem entrar
-  if (erroPerfil || perfil?.account_type !== "organizacao") {
+  if (erroPerfil || !perfil) {
     redirect("/painel");
   }
 
-  return (
-    <main className="flex min-h-screen items-center justify-center bg-[#F3F4F6] px-5">
-      <div className="rounded-2xl bg-white p-8 text-center shadow-sm">
-        <h1 className="text-2xl font-bold text-[#0F2937]">
-          Área da Organização
-        </h1>
+  if (perfil.account_type !== "organizacao") {
+    redirect("/painel/estudante");
+  }
 
-        <p className="mt-3 text-sm text-slate-600">
-          Bem-vindo, {perfil.full_name}!
-        </p>
-      </div>
-    </main>
+  // Buscar apenas oportunidades desta organização
+  const { data: oportunidades, error: erroOportunidades } =
+    await supabase
+      .from("opportunities")
+      .select("id, titulo, status, created_at")
+      .eq("organizacao_id", usuarioId)
+      .is("deleted_at", null)
+      .order("created_at", { ascending: false });
+  if (erroOportunidades) {
+    throw new Error(
+      "Não foi possível carregar as oportunidades da organização."
+    );
+  }
+
+  // Consultar a verificação da organização
+  const { data: informacoes, error: erroVerificacao } = await supabase
+    .from("organization_public_info")
+    .select("verified")
+    .eq("organization_id", usuarioId)
+    .maybeSingle();
+
+  if (erroVerificacao) {
+    throw new Error("Não foi possível verificar a organização.");
+  }
+  return (
+    <OrganizationDashboard
+      nome={perfil.full_name}
+      oportunidades={oportunidades ?? []}
+      verificada={informacoes?.verified === true}
+    />
   );
-}
+} // ← ESTA chave estava faltando!
 
 export default function OrganizacaoPage() {
   return (
-    <Suspense fallback={<p>Carregando...</p>}>
-      <AreaOrganizacao />
+    <Suspense fallback={<p>Carregando painel...</p>}>
+      <ConteudoOrganizacao />
     </Suspense>
   );
 }

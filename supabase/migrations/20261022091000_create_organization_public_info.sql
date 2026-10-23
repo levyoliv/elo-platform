@@ -1,4 +1,3 @@
-
 -- ELO - Informações públicas das organizações
 
 create table public.organization_public_info (

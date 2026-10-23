@@ -1,4 +1,3 @@
-
 -- ELO - Favoritos dos estudantes
 
 create table public.favorites (
