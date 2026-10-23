@@ -109,6 +109,6 @@ export default function StudentOpportunityCard({
       <div className="px-4 pb-4">
         <ApplicationButton oportunidadeId={oportunidade.id} />
       </div>
-    </article>
+    </article>  
   );
 }

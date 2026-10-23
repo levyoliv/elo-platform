@@ -1,4 +1,3 @@
-
 -- ELO - Candidaturas dos estudantes
 
 create table public.applications (
