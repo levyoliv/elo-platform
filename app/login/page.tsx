@@ -44,7 +44,7 @@ export default function LoginPage() {
       }
 
       // Redirecionamento temporário após login
-      window.location.assign("/painel");
+      window.location.assign("/painel/entrada");
     } catch (error) {
       console.error("Erro ao entrar no ELO:", error);
 
